@@ -1,9 +1,10 @@
-#include <stb_image.h>
-#include <stb_image_resize.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+
+#include "stb_image.h"
+#include "stb_image_resize.h"
 
 int getWindowSize(int* rows, int* cols) {
     struct winsize ws;
@@ -18,7 +19,6 @@ int getWindowSize(int* rows, int* cols) {
 int main(int argc, char* argv[]) {
     const char* file_path = NULL;
     int target_width = -1;
-    int pixel_width = 2;
     int raw_size = 0;
     for (int i = 1; i < argc; i++) {
         const char* arg = argv[i];
@@ -31,17 +31,6 @@ int main(int argc, char* argv[]) {
             target_width = atoi(argv[i]);
             if (target_width < 0) {
                 fprintf(stderr, "Width cannot be negative\n");
-                return 1;
-            }
-        } else if (strcmp(arg, "-p") == 0) {
-            i++;
-            if (i >= argc) {
-                fprintf(stderr, "No value provided for %s\n", arg);
-                return 1;
-            }
-            pixel_width = atof(argv[i]);
-            if (pixel_width <= 0) {
-                fprintf(stderr, "Pixel width cannot be 0 or negative\n");
                 return 1;
             }
         } else if (strcmp(arg, "-r") == 0) {
@@ -72,7 +61,7 @@ int main(int argc, char* argv[]) {
     } else {
         int sw, sh;
         if (getWindowSize(&sh, &sw) != -1) {
-            sw /= pixel_width;
+            // sh *= 2;
             rh = sh;
             rw = w * rh / h;
             if (target_width == 0 || rw > sw) {
@@ -86,7 +75,7 @@ int main(int argc, char* argv[]) {
     if (!raw_size) {
         resize = malloc(sizeof(uint32_t) * rw * rh);
         if (!resize) {
-            fprintf(stderr, "Cannot allocate memory for resize image.\n");
+            fprintf(stderr, "Cannot allocate memory for resize image\n");
             return 1;
         }
         stbir_resize_uint8((uint8_t*)img, w, h, sizeof(uint32_t) * w,
@@ -96,26 +85,28 @@ int main(int argc, char* argv[]) {
         pixels = resize;
     }
 
-    char pixel_buf[32];
-    snprintf(pixel_buf, sizeof(pixel_buf), "%*s", pixel_width, "");
-
-    uint32_t prev_pixel = 0;
-    for (int x = 0; x < h; x++) {
+    for (int x = 0; x + 1 < h; x += 2) {
         for (int y = 0; y < w; y++) {
-            uint32_t pixel = pixels[x * w + y];
-            if (pixel != prev_pixel) {
-                int r = (pixel >> 8 * 0) & 0xFF;
-                int g = (pixel >> 8 * 1) & 0xFF;
-                int b = (pixel >> 8 * 2) & 0xFF;
-                int a = (pixel >> 8 * 3) & 0xFF;
-                r *= a / 255;
-                g *= a / 255;
-                b *= a / 255;
-                printf("\x1b[48;2;%d;%d;%dm%s", r, g, b, pixel_buf);
-            } else {
-                prev_pixel = pixel;
-                printf("%s", pixel_buf);
-            }
+            uint32_t pixel, r, g, b, a;
+            pixel = pixels[x * w + y];
+            r = (pixel >> 8 * 0) & 0xFF;
+            g = (pixel >> 8 * 1) & 0xFF;
+            b = (pixel >> 8 * 2) & 0xFF;
+            a = (pixel >> 8 * 3) & 0xFF;
+            r *= a / 255;
+            g *= a / 255;
+            b *= a / 255;
+            printf("\x1b[48;2;%d;%d;%dm", r, g, b);
+
+            pixel = pixels[(x + 1) * w + y];
+            r = (pixel >> 8 * 0) & 0xFF;
+            g = (pixel >> 8 * 1) & 0xFF;
+            b = (pixel >> 8 * 2) & 0xFF;
+            a = (pixel >> 8 * 3) & 0xFF;
+            r *= a / 255;
+            g *= a / 255;
+            b *= a / 255;
+            printf("\x1b[38;2;%d;%d;%dm\u2584", r, g, b);
         }
         printf("\x1b[m\n");
     }
