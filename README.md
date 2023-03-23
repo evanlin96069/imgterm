@@ -1,3 +1,3 @@
-# Example
+# imgterm
 
-Example README.md
+Display images in terminal with true color.
