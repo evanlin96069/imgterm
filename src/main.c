@@ -21,9 +21,9 @@ void setColor(uint32_t color, int is_bg) {
     int g = (color >> 8 * 1) & 0xFF;
     int b = (color >> 8 * 2) & 0xFF;
     int a = (color >> 8 * 3) & 0xFF;
-    r *= a / 255;
-    g *= a / 255;
-    b *= a / 255;
+    r *= a / 255.0f;
+    g *= a / 255.0f;
+    b *= a / 255.0f;
     printf("\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, r, g, b);
 }
 
