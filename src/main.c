@@ -20,12 +20,13 @@ int getWindowSize(int* rows, int* cols) {
 int main(int argc, char* argv[]) {
     int th = -1, tw = -1;
     int p = 50;
-    int rs = 0;
+    int raw_size = 0;
+    int use_space = 0;
 
     SetColorFunc setColor = setTrueColor;
 
     int opt;
-    while ((opt = getopt(argc, argv, "w:h:p:rc?")) != -1) {
+    while ((opt = getopt(argc, argv, "w:h:p:rcs?")) != -1) {
         switch (opt) {
             case 'w':
                 tw = atoi(optarg);
@@ -49,15 +50,18 @@ int main(int argc, char* argv[]) {
                 }
                 break;
             case 'r':
-                rs = 1;
+                raw_size = 1;
                 break;
             case 'c':
                 setColor = set256Color;
                 break;
+            case 's':
+                use_space = 1;
+                break;
             default:
                 fprintf(stderr,
                         "Usage: %s [-w width] [-h height] [-p percentage] [-r] "
-                        "[-c] files\n",
+                        "[-c] [-s] files\n",
                         argv[0]);
                 exit(EXIT_FAILURE);
         }
@@ -74,10 +78,14 @@ int main(int argc, char* argv[]) {
 
         uint32_t* pixels = img;
         uint32_t* resize = NULL;
-        if (!rs) {
+        if (!raw_size) {
             int rh = 0, rw = 0, sw = 0, sh = 0;
             getWindowSize(&sh, &sw);
-            sh *= 2;
+            if (use_space) {
+                sw /= 2;
+            } else {
+                sh *= 2;
+            }
 
             if (tw == -1 && th == -1) {
                 rh = sh * p / 100.0f;
@@ -114,11 +122,15 @@ int main(int argc, char* argv[]) {
             pixels = resize;
         }
 
-        for (int x = 0; x + 1 < h; x += 2) {
+        for (int x = 0; x + 1 < h; x += (use_space ? 1 : 2)) {
             for (int y = 0; y < w; y++) {
                 setColor(pixels[x * w + y], 1);
-                setColor(pixels[(x + 1) * w + y], 0);
-                printf("\u2584");
+                if (use_space) {
+                    printf("  ");
+                }else {
+                    setColor(pixels[(x + 1) * w + y], 0);
+                    printf("\u2584");
+                }
             }
             printf("\x1b[m\n");
         }
