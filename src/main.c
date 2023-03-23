@@ -3,6 +3,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include "color.h"
 #include "stb_image.h"
 #include "stb_image_resize.h"
 
@@ -16,24 +17,15 @@ int getWindowSize(int* rows, int* cols) {
     return 0;
 }
 
-void setColor(uint32_t color, int is_bg) {
-    int r = (color >> 8 * 0) & 0xFF;
-    int g = (color >> 8 * 1) & 0xFF;
-    int b = (color >> 8 * 2) & 0xFF;
-    int a = (color >> 8 * 3) & 0xFF;
-    r *= a / 255.0f;
-    g *= a / 255.0f;
-    b *= a / 255.0f;
-    printf("\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, r, g, b);
-}
-
 int main(int argc, char* argv[]) {
     int th = -1, tw = -1;
     int p = 50;
     int rs = 0;
 
+    SetColorFunc setColor = setTrueColor;
+
     int opt;
-    while ((opt = getopt(argc, argv, "w:h:p:r")) != -1) {
+    while ((opt = getopt(argc, argv, "w:h:p:rc?")) != -1) {
         switch (opt) {
             case 'w':
                 tw = atoi(optarg);
@@ -59,10 +51,13 @@ int main(int argc, char* argv[]) {
             case 'r':
                 rs = 1;
                 break;
+            case 'c':
+                setColor = set256Color;
+                break;
             default:
                 fprintf(stderr,
                         "Usage: %s [-w width] [-h height] [-p percentage] [-r] "
-                        "file\n",
+                        "[-c] files\n",
                         argv[0]);
                 exit(EXIT_FAILURE);
         }
