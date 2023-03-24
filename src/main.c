@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
         uint32_t* pixels = img;
         uint32_t* resize = NULL;
         if (!raw_size) {
-            int rh = 0, rw = 0, sw = 0, sh = 0;
+            int rh = 0, rw = 0, sw = 120, sh = 30;
             getWindowSize(&sh, &sw);
             if (use_space) {
                 sw /= 2;
