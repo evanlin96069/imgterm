@@ -3,23 +3,19 @@
 #include <math.h>
 #include <stdio.h>
 
-static void getColor(uint32_t color, int* r, int* g, int* b) {
-    *r = (color >> 8 * 0) & 0xFF;
-    *g = (color >> 8 * 1) & 0xFF;
-    *b = (color >> 8 * 2) & 0xFF;
-    int a = (color >> 8 * 3) & 0xFF;
-    *r *= a / 255.0f;
-    *g *= a / 255.0f;
-    *b *= a / 255.0f;
+uint32_t getColorSqrDist(Color a, Color b) {
+    int dr = a.r - b.r;
+    int dg = a.g - b.g;
+    int db = a.b - b.b;
+    return dr * dr + dg * dg + db * db;
 }
 
 void setTrueColor(uint32_t color, int is_bg) {
-    int r, g, b;
-    getColor(color, &r, &g, &b);
-    printf("\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, r, g, b);
+    Color c = {.color = color};
+    printf("\x1b[%d;2;%d;%d;%dm", is_bg ? 48 : 38, c.r, c.g, c.b);
 }
 
-static int rgb256[256][3] = {
+static uint8_t rgb256[256][3] = {
     {0, 0, 0},       {128, 0, 0},     {0, 128, 0},     {128, 128, 0},
     {0, 0, 128},     {128, 0, 128},   {0, 128, 128},   {192, 192, 192},
     {128, 128, 128}, {255, 0, 0},     {0, 255, 0},     {255, 255, 0},
@@ -87,15 +83,15 @@ static int rgb256[256][3] = {
 };
 
 void set256Color(uint32_t color, int is_bg) {
-    int r, g, b;
-    getColor(color, &r, &g, &b);
-    int index = 0;
-    int min_dist = INT32_MAX;
-    for (int i = 0; i < 256; i++) {
-        int dr = r - rgb256[i][0];
-        int dg = g - rgb256[i][1];
-        int db = b - rgb256[i][2];
-        int dist = dr * dr + dg * dg + db * db;
+    // Standard colors and high-intensity colors may change
+    // Use 6 x 6 x 6 cube (216 colors) only
+    int index = 16;
+    uint32_t min_dist = UINT32_MAX;
+    for (int i = 16; i < 256; i++) {
+        Color pixel = {.color = color};
+        Color color256 = {
+            .r = rgb256[i][0], .g = rgb256[i][1], .b = rgb256[i][2]};
+        uint32_t dist = getColorSqrDist(pixel, color256);
         if (dist < min_dist) {
             min_dist = dist;
             index = i;
